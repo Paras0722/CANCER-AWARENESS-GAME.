@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fight Cancer Cells Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #111, #333);
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      background: #111;
+      display: block;
+      margin: auto;
+      border: 3px solid #0f0;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #0f0;
+    }
+    h1 { margin: 10px; color: #0f0; text-shadow: 0 0 5px #0f0; }
+  </style>
+</head>
+<body>
+  <h1>Fight Cancer Cells 💪</h1>
+  <p>Use ← → to move, SPACE to shoot healthy choices 🍎🏃‍♂️🚭</p>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let player = { x: 180, y: 550, w: 40, h: 20, speed: 6 };
+    let bullets = [];
+    let enemies = [];
+    let score = 0;
+    let health = 5;
+    let gameOver = false;
+    let victory = false;
+
+    const healthyIcons = ["🍎", "🏃‍♂️", "🚭"];
+
+    // Audio (dummy file names - replace with real .mp3 in folder)
+    const bgMusic = new Audio("bg.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.3;
+
+    const winSound = new Audio("win.mp3");
+    const loseSound = new Audio("lose.mp3");
+
+    bgMusic.play();
+
+    let keys = {};
+    document.addEventListener("keydown", e => keys[e.code] = true);
+    document.addEventListener("keyup", e => keys[e.code] = false);
+
+    function spawnEnemy() {
+      let x = Math.random() * 360;
+      enemies.push({ x: x, y: 0, r: 15 });
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = "#0f0";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    function drawBullets() {
+      bullets.forEach(b => ctx.fillText(b.icon, b.x, b.y));
+    }
+
+    function drawEnemies() {
+      enemies.forEach(e => ctx.fillText("☠️", e.x, e.y));
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      if (keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
+      if (keys["ArrowRight"] && player.x < canvas.width - player.w) player.x += player.speed;
+
+      if (keys["Space"]) {
+        if (bullets.length === 0 || Date.now() - bullets[bullets.length-1].time > 400) {
+          const icon = healthyIcons[Math.floor(Math.random()*healthyIcons.length)];
+          bullets.push({ x: player.x + 10, y: player.y, time: Date.now(), icon: icon });
+        }
+      }
+
+      bullets.forEach(b => b.y -= 6);
+      bullets = bullets.filter(b => b.y > 0);
+
+      enemies.forEach(e => e.y += 2.5);
+
+      enemies.forEach((e, ei) => {
+        bullets.forEach((b, bi) => {
+          if (b.x < e.x + 15 && b.x > e.x - 15 && b.y < e.y + 15 && b.y > e.y - 15) {
+            enemies.splice(ei, 1);
+            bullets.splice(bi, 1);
+            score++;
+            if (score >= 20) {
+              gameOver = true;
+              victory = true;
+              bgMusic.pause();
+              winSound.play();
+            }
+          }
+        });
+
+        if (e.y > canvas.height - 30) {
+          enemies.splice(ei, 1);
+          health--;
+          if (health <= 0) {
+            gameOver = true;
+            victory = false;
+            bgMusic.pause();
+            loseSound.play();
+          }
+        }
+      });
+    }
+
+    function drawHealthBar() {
+      ctx.fillStyle = "red";
+      ctx.fillRect(10, 30, 100, 10);
+      ctx.fillStyle = "lime";
+      ctx.fillRect(10, 30, (health/5)*100, 10);
+      ctx.strokeStyle = "white";
+      ctx.strokeRect(10, 30, 100, 10);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawBullets();
+      drawEnemies();
+
+      ctx.fillStyle = "white";
+      ctx.font = "16px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+      drawHealthBar();
+
+      if (gameOver) {
+        ctx.fillStyle = "yellow";
+        ctx.font = "20px Arial";
+        if (victory) {
+          ctx.fillText("Victory! Healthy Lifestyle Wins!", 50, 260);
+          ctx.font = "18px Arial";
+          ctx.fillText("Healthy choices today build a cancer-free tomorrow 🧬💚", 20, 300);
+        } else {
+          ctx.fillText("Game Over - Stay Healthy!", 80, 260);
+          ctx.font = "18px Arial";
+          ctx.fillText("Unhealthy choices make us weaker – Stay strong ❌🚬", 40, 300);
+        }
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText("Press R to Replay", 120, 360);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    setInterval(spawnEnemy, 1200);
+    gameLoop();
+
+    // Replay option
+    document.addEventListener("keydown", e => {
+      if (gameOver && e.code === "KeyR") {
+        player = { x: 180, y: 550, w: 40, h: 20, speed: 6 };
+        bullets = [];
+        enemies = [];
+        score = 0;
+        health = 5;
+        gameOver = false;
+        victory = false;
+        bgMusic.currentTime = 0;
+        bgMusic.play();
+      }
+    });
+  </script>
+</body>
+</html>
